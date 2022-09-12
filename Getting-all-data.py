@@ -43,8 +43,8 @@ def macrodata():
 
 # Getting Gold data for the past year
 def golddata(latest_date):
-    base_currency = 'INR'
-    symbol = 'XAU' 
+    base_currency = 'XAU'
+    symbol = 'INR' 
     endpoint = 'timeseries'
     start_date = '2021-09-09'
     end_date = latest_date
@@ -64,8 +64,8 @@ def golddata(latest_date):
 
 # Getting oil data for the last year 
 def oildata(latest_date):
-    base_currency = 'INR'
-    symbol = 'BRENTOIL' 
+    base_currency = 'BRENTOIL'
+    symbol = 'INR' 
     endpoint = 'timeseries'
     start_date = '2021-09-09'
     end_date = latest_date
@@ -116,13 +116,15 @@ def redditpolitics():
         
     politics = {'Date':date1,'Politics':allpolitics}
     news_headlines = {'Date':date2,'Headlines':allheadlines}
-    return politics,news_headlines
+    politicsdf = pd.DataFrame.from_dict(politics)
+    news_headlinesdf = pd.DataFrame.from_dict(news_headlines)
+    return politicsdf,news_headlinesdf
 
 
 #  All Financial Time articles 
 def ftnews():
-    news_titles=set()
-    dates = set()
+    news_titles=[]
+    dates = []
     for page in range(1,20):
         url="https://www.ft.com/india?page={}".format(page)
         result=requests.get(url)
@@ -133,15 +135,16 @@ def ftnews():
             titles=title.find(text=True)
             if titles == 'Follow us on Twitter @FTIndianews':
                 break
-            news_titles.add(titles)
+            news_titles.append(titles)
         for date in soup.findAll("div",{"class":'stream-card__date'}):
             date = date.find('time').get('datetime').strip()
-            dates.add(date)
+            dates.append(date)
 
     if len(news_titles) == len(dates):
-        dictionary = {'Date':dates,'News_titles':list(titles)}
+        dictionary = {'Date':list(dates),'News_titles':list(news_titles)}
 
-    return dictionary
+    ftdf = pd.DataFrame.from_dict(dictionary)
+    return ftdf
     
 
 #define search twitter function
@@ -159,7 +162,7 @@ def search_twitter(query, tweet_fields,max_results, bearer_token = BEARER_TOKEN)
 
 # 
 def gettweets(query = "-is%3Aretweet Reliance Industries Limited"):
-    toptweets  = set()
+    toptweets  = list()
     dates = list()
     #search term
 
@@ -173,12 +176,12 @@ def gettweets(query = "-is%3Aretweet Reliance Industries Limited"):
     # print(json.dumps(json_response, indent=4, sort_keys=True))
 
     for dict in json_response['data']:
-        toptweets.add(dict['text'])
+        toptweets.append(dict['text'])
         dates.append(dict['created_at'])
     
-    dictionary = {'Date' : dates,'Tweets':list(toptweets)}
-
-    return dictionary
+    dictionary = {'Date' : dates,'Tweets':toptweets}
+    twitterdf = pd.DataFrame.from_dict(dictionary)
+    return twitterdf
 
 
 def everything():  
@@ -202,8 +205,7 @@ def everything():
     # Making into datframe
     allsentiments = [allpolitics,headlines,ftarticles,reliancetweets]
     # Converting them all into dataframes and returning a list of those dataframes
-    alldataframes = indataframe(allsentiments)
-    sentimentdf = merging(alldataframes)
+    sentimentdf = merging(allsentiments)
     # Return the dataframe
     return sentimentdf,macro
 
