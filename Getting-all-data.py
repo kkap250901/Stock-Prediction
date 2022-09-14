@@ -13,9 +13,9 @@ import requests
 from bs4 import BeautifulSoup
 import requests
 import json
-from other_functions import get_date
-from other_functions import indataframe
-from other_functions import merging
+from Supplementary_fns import get_date
+from Supplementary_fns import indataframe
+from Supplementary_fns import merging
 
 
 # Instansiating an instance of the Reddit class
@@ -38,6 +38,9 @@ def macrodata():
     df.columns = ['Open','High','Low','Close','Volume']
     df.index.names = ['Date']
     df = df.reset_index()
+    df.Date = pd.to_datetime(df.Date)
+    df = df[df['Date'] < '2022-09-10']
+    df.Date = df.Date.astype('str')
     return df
 
 
