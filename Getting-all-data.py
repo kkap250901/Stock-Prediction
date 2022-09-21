@@ -4,7 +4,7 @@ import math
 from pprint import pprint
 import pandas as pd
 import numpy as np
-import nltk
+import nltk 
 import matplotlib.pyplot as plt
 import seaborn as sns
 import praw
