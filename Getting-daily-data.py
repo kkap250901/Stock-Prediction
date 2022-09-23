@@ -1,4 +1,5 @@
 from ntpath import join
+from tracemalloc import start
 from IPython import display
 import math
 from pprint import pprint
@@ -24,6 +25,8 @@ reddit = praw.Reddit(client_id = '7hJXdlOQrZBe5CLnz-6Iow',
                 user_agent = 'DragonflyOk1283'
             )
 
+start_date = '2022-09-10'
+end_date = '2022-09-22'
 
 #its bad practice to place your bearer token directly into the script (this is just done for illustration purposes)
 BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAECKgQEAAAAA9d7wW%2FntXqlEqIhO3Zb%2FmYEsQR8%3DgYRJHrno8YqhEtBzTA3ZsSvLt8Vq5Qf3MBCTnZCkSg2MysCDGM"
@@ -39,18 +42,16 @@ def macrodata():
     df.index.names = ['Date']
     df = df.reset_index()
     df.Date = pd.to_datetime(df.Date)
-    df = df[df['Date'] < '2022-09-10']
+    df = df[df['Date'] < end_date]
     df.Date = df.Date.astype('str')
     return df
 
 
 # Getting Gold data for the past year
-def golddata(latest_date):
+def golddata():
     base_currency = 'XAU'
     symbol = 'INR' 
     endpoint = 'timeseries'
-    start_date = '2021-09-09'
-    end_date = latest_date
     access_key = 'ind54w6v11p4vll9bdyl35mk6ad5817upr5o7gkpf2fuyu6q6w999suifx34'
 
     resp = requests.get(
@@ -66,12 +67,10 @@ def golddata(latest_date):
 
 
 # Getting oil data for the last year 
-def oildata(latest_date):
+def oildata():
     base_currency = 'BRENTOIL'
     symbol = 'INR' 
     endpoint = 'timeseries'
-    start_date = '2021-09-09'
-    end_date = latest_date
     access_key = 'ind54w6v11p4vll9bdyl35mk6ad5817upr5o7gkpf2fuyu6q6w999suifx34'
     resp = requests.get(
         'https://www.commodities-api.com/api/'+endpoint+'?access_key='+access_key+'&start_date='+start_date+'&end_date='+end_date+'&base='+base_currency+'&symbols='+symbol)
@@ -83,8 +82,8 @@ def oildata(latest_date):
 
 
 # Get the USD-INR Exchange rate from the last year
-def exchangedata(latest_date):
-    url = f"https://api.apilayer.com/exchangerates_data/timeseries?start_date=2021-09-10&end_date={latest_date}&base=USD&symbols=INR"
+def exchangedata():
+    url = f"https://api.apilayer.com/exchangerates_data/timeseries?start_date={start_date}&end_date={end_date}&base=USD&symbols=INR"
     payload = {}
     headers= {"apikey": "ZtkAIYrfLdUk9p58uEkeIwJV1uWAdP8u"}
     response = requests.request("GET", url, headers=headers, data = payload)
@@ -106,13 +105,13 @@ def redditpolitics():
     date2 = []
 
     # This is for the political news 
-    for submission in reddit.subreddit('Politics').top(time_fipoliticslter="year",limit=None):
+    for submission in reddit.subreddit('Politics').top(time_filter="week",limit=None):
         allpolitics.append(submission.title)
         date = get_date(submission)
         date1.append(date)
         
     # This is for the indian news with specific political and Buiness news
-    for submission in reddit.subreddit('india').search('flair:Policy/Economy OR flair:Business/Finance OR flair:Politics OR flair:Science/Technology',time_filter='year',limit=None):
+    for submission in reddit.subreddit('india').search('flair:Policy/Economy OR flair:Business/Finance OR flair:Politics OR flair:Science/Technology',time_filter='week',limit=None):
         allheadlines.append(submission.title)
         date = get_date(submission)
         date2.append(date)
@@ -151,11 +150,11 @@ def ftnews():
     
 
 #define search twitter function
-def search_twitter(query, tweet_fields,max_results, bearer_token = BEARER_TOKEN):
+def search_twitter(query, tweet_fields,max_results,start_time,bearer_token = BEARER_TOKEN):
     headers = {"Authorization": "Bearer {}".format(bearer_token)}
 
-    url = "https://api.twitter.com/2/tweets/search/recent?query={}&{}&{}".format(
-        query, tweet_fields,max_results
+    url = "https://api.twitter.com/2/tweets/search/recent?query={}&{}&{}&{}".format(
+        query, tweet_fields,max_results,start_time
     )
     response = requests.request("GET", url, headers=headers)
 
@@ -164,7 +163,7 @@ def search_twitter(query, tweet_fields,max_results, bearer_token = BEARER_TOKEN)
     return response.json()
 
 # 
-def gettweets(query = "-is%3Aretweet Reliance Industries Limited"):
+def gettweets(query = "-is%3Aretweet Reliance"):
     toptweets  = list()
     dates = list()
     #search term
@@ -172,9 +171,12 @@ def gettweets(query = "-is%3Aretweet Reliance Industries Limited"):
     #twitter fields to be returned by api call
     tweet_fields = "tweet.fields=created_at"
     max_results = f'max_results={100}'
+    start_time = f'start_time=2022-09-17T00:00:01-00:00'
+    # end_time = f'end_time={end_date}'
+    # since_id = f'since_id=20220918T000000Z'
 
     #twitter api call
-    json_response = search_twitter(query=query, tweet_fields=tweet_fields,max_results=max_results, bearer_token=BEARER_TOKEN)
+    json_response = search_twitter(query=query, tweet_fields=tweet_fields,start_time = start_time,max_results=max_results, bearer_token=BEARER_TOKEN)
     #pretty printing
     # print(json.dumps(json_response, indent=4, sort_keys=True))
 
@@ -191,11 +193,11 @@ def everything():
     #Getting Macro data
     reliance = macrodata()
     #Getting Gold data
-    gold = golddata(latest_date=reliance.Date.max())
+    gold = golddata()
     #Getting oil price data
-    oil = oildata(latest_date=reliance.Date.max())
+    oil = oildata()
     #Getting the exchange rate data
-    exchange = exchangedata(latest_date=reliance.Date.max())
+    exchange = exchangedata()
     #merging on the date for the overall macro dataset
     macro = pd.merge(pd.merge(reliance,oil,on='Date',how='inner'),
             (pd.merge(gold,exchange,on='Date',how='inner')),on='Date',how='inner')
@@ -216,7 +218,7 @@ def everything():
 # Running all the functions to get all the data
 if __name__ == '__main__':
     sentiment,macro = everything()
-    sentiment.to_excel('allarticles.xlsx')
-    macro.to_excel('Stock-data.xlsx')
+    sentiment.to_excel('daily-articles1.xlsx')
+    macro.to_excel('Stock-data-weekly1.xlsx')
 
 
